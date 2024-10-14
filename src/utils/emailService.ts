@@ -29,7 +29,7 @@ export const sendOTPEmail = async (
 export const sendWelcomeEmail = async (email: string): Promise<void> => {
   try {
     await resend.emails.send({
-      from: "Mysql-node <onboarding@resend.dev> ",
+      from: "Mysql-node <onboarding@resend.dev>",
       to: email,
       subject: "Welcome to Msql-node!",
       html: `

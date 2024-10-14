@@ -8,14 +8,17 @@ import {
   userLoginValidation,
   UserRegisterInput,
   userRegisterSchema,
+  userVerifyOTPSchema,
 } from "../validation/user.validation";
 import {
   createUser,
   findUserByEmail,
+  markUserAsVerified,
   updateUserOTP,
   User,
+  verifyUserOTP,
 } from "../models/user.model";
-import { sendOTPEmail } from "../utils/emailService";
+import { sendOTPEmail, sendWelcomeEmail } from "../utils/emailService";
 
 export const registerUser = async (
   req: Request,
@@ -48,7 +51,7 @@ export const registerUser = async (
 
     const otp = uuidv4().slice(0, 6).toUpperCase();
     const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10minutes
-    await updateUserOTP(user.email, otp, otpExpiresAt);
+    await updateUserOTP(user.id!, otp, otpExpiresAt);
     await sendOTPEmail(user.email, otp);
 
     res.status(201).json({
@@ -59,6 +62,41 @@ export const registerUser = async (
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error creating user," });
+  }
+};
+
+export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const parsed = userVerifyOTPSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ errors: parsed.error.errors });
+      return;
+    }
+
+    const { otp } = parsed.data;
+    const user = await verifyUserOTP(otp);
+    if (!user) {
+      res.status(400).json({ message: "Invalid or expired OTP" });
+      return;
+    }
+
+    await markUserAsVerified(user.id!);
+    try {
+      await sendWelcomeEmail(user.email);
+      console.log(`Welcome email successfully sent to: ${user.email}`);
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+      res
+        .status(500)
+        .json({ message: "OTP verified, but failed to send welcome email." });
+      return;
+    }
+
+    res.status(200).json({ message: "Email Verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+
+    res.status(500).json({ message: "Error Verifying OTP" });
   }
 };
 

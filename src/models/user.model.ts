@@ -38,36 +38,35 @@ export const findUserByEmail = async (email: string): Promise<User | null> => {
 };
 
 export const updateUserOTP = async (
-  email: string,
+  userId: number,
   otp: string,
   otpExpiresAt: Date
 ): Promise<void> => {
   await initPool();
   const hashedOTP = await bcryptjs.hash(otp, 10);
-  const sql = "UPDATE users SET otp = ?, otpExpiresAt = ? WHERE email = ?";
-  await pool.query(sql, [hashedOTP, otpExpiresAt, email]);
+  const sql = "UPDATE users SET otp = ?, otpExpiresAt = ? WHERE id = ?";
+  await pool.query(sql, [hashedOTP, otpExpiresAt, userId]);
 };
 
-export const verifyUserOTP = async (
-  email: string,
-  otp: string
-): Promise<boolean> => {
-  await initPool();
-  const sql = "SELECT otp, otpExpiresAt FROM users WHERE email = ?";
-
-  const [rows]: any = await pool.query(sql, [email]);
-  if (rows.length === 0) return false;
-
-  const { otp: hashedOTP, otpExpiresAt } = rows[0];
-  if (new Date() > new Date(otpExpiresAt)) return false;
-
-  return await bcryptjs.compare(otp, hashedOTP);
-};
-
-export const markUserAsVerified = async (email: string): Promise<void> => {
+export const verifyUserOTP = async (otp: string): Promise<User | null> => {
   await initPool();
   const sql =
-    "UPDATE users SET isVerified = true, otp = NULL, otpExpiresAt = NULL WHERE email = ?";
+    "SELECT id, email, otp, otpExpiresAt FROM users WHERE otpExpiresAt > NOW() ORDER BY otpExpiresAt DESC LIMIT 1";
 
-  await pool.query(sql, [email]);
+  const [rows]: any = await pool.query(sql);
+  if (rows.length === 0) return null;
+
+  const user = rows[0];
+  const isValid = await bcryptjs.compare(otp, user.otp);
+  if (!isValid) return null;
+
+  return user;
+};
+
+export const markUserAsVerified = async (userId: number): Promise<void> => {
+  await initPool();
+  const sql =
+    "UPDATE users SET isVerified = true, otp = NULL, otpExpiresAt = NULL WHERE id = ?";
+
+  await pool.query(sql, [userId]);
 };

@@ -4,13 +4,14 @@ import {
   loginUser,
   logoutUser,
   registerUser,
+  verifyOTP,
 } from "../controllers/user.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
-import { verifyUserOTP } from "models/user.model";
 
 const router = Router();
 
 router.post("/register", registerUser);
+router.post("/verify-otp", verifyOTP);
 router.post("/login", loginUser);
 router.post("/logout", authenticateToken, logoutUser);
 

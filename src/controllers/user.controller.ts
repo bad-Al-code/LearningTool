@@ -38,12 +38,10 @@ export const registerUser = async (
     };
 
     const user = await createUser(newUser);
-    res
-      .status(201)
-      .json({
-        message: "User created successfully",
-        user: { id: user?.id, email: user?.email },
-      });
+    res.status(201).json({
+      message: "User created successfully",
+      user: { id: user?.id, email: user?.email },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error creating user," });
@@ -84,7 +82,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     res.cookie("token", token, {
       maxAge: 60 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "prod",
+      secure: process.env.NODE_ENV === "production",
     });
 
     res.status(200).json({
@@ -95,4 +93,14 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     console.error(error);
     res.status(500).json({ message: "Internal server eroor" });
   }
+};
+
+export const logoutUser = (req: Request, res: Response) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  res.status(200).json({ message: "Logged out successfully" });
 };

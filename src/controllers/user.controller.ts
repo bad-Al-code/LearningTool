@@ -1,14 +1,24 @@
 import { Request, Response } from "express";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
 
 import {
   UserLoginValidation,
   userLoginValidation,
   UserRegisterInput,
   userRegisterSchema,
+  userVerifyOTPSchema,
 } from "../validation/user.validation";
-import { createUser, findUserByEmail, User } from "../models/user.model";
+import {
+  createUser,
+  findUserByEmail,
+  markUserAsVerified,
+  updateUserOTP,
+  User,
+  verifyUserOTP,
+} from "../models/user.model";
+import { sendOTPEmail, sendWelcomeEmail } from "../utils/emailService";
 
 export const registerUser = async (
   req: Request,
@@ -38,15 +48,55 @@ export const registerUser = async (
     };
 
     const user = await createUser(newUser);
-    res
-      .status(201)
-      .json({
-        message: "User created successfully",
-        user: { id: user?.id, email: user?.email },
-      });
+
+    const otp = uuidv4().slice(0, 6).toUpperCase();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10minutes
+    await updateUserOTP(user.id!, otp, otpExpiresAt);
+    await sendOTPEmail(user.email, otp);
+
+    res.status(201).json({
+      message:
+        "User created successfully. Please check your email for OTP verification",
+      user: { id: user?.id, email: user?.email },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error creating user," });
+  }
+};
+
+export const verifyOTP = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const parsed = userVerifyOTPSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ errors: parsed.error.errors });
+      return;
+    }
+
+    const { otp } = parsed.data;
+    const user = await verifyUserOTP(otp);
+    if (!user) {
+      res.status(400).json({ message: "Invalid or expired OTP" });
+      return;
+    }
+
+    await markUserAsVerified(user.id!);
+    try {
+      await sendWelcomeEmail(user.email);
+      console.log(`Welcome email successfully sent to: ${user.email}`);
+    } catch (emailError) {
+      console.error("Failed to send welcome email:", emailError);
+      res
+        .status(500)
+        .json({ message: "OTP verified, but failed to send welcome email." });
+      return;
+    }
+
+    res.status(200).json({ message: "Email Verified successfully" });
+  } catch (error) {
+    console.error("Error verifying OTP:", error);
+
+    res.status(500).json({ message: "Error Verifying OTP" });
   }
 };
 
@@ -84,7 +134,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     res.cookie("token", token, {
       maxAge: 60 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === "prod",
+      secure: process.env.NODE_ENV === "production",
     });
 
     res.status(200).json({
@@ -95,4 +145,14 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     console.error(error);
     res.status(500).json({ message: "Internal server eroor" });
   }
+};
+
+export const logoutUser = (req: Request, res: Response) => {
+  res.clearCookie("token", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+  });
+
+  res.status(200).json({ message: "Logged out successfully" });
 };

@@ -6,6 +6,7 @@ import {
   registerUser,
 } from "../controllers/user.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
+import { verifyUserOTP } from "models/user.model";
 
 const router = Router();
 

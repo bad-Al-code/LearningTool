@@ -19,7 +19,10 @@ export const userRegisterSchema = z.object({
     }),
 });
 
-export type UserRegisterInput = z.infer<typeof userRegisterSchema>;
+export const userVerifyOTPSchema = z.object({
+  email: z.string().email("Invalid email format"),
+  otp: z.string().length(6, "OTP must be 6 characters long"),
+});
 
 export const userLoginValidation = z.object({
   email: z.string().email("Invalid email credentials"),
@@ -36,4 +39,6 @@ export const userLoginValidation = z.object({
     }),
 });
 
+export type UserRegisterInput = z.infer<typeof userRegisterSchema>;
+export type UserVerifyOTPInput = z.infer<typeof userVerifyOTPSchema>;
 export type UserLoginValidation = z.infer<typeof userLoginValidation>;

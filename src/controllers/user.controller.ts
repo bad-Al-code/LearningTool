@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcryptjs from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { v4 as uuidv4 } from "uuid";
 
 import {
   UserLoginValidation,
@@ -8,7 +9,13 @@ import {
   UserRegisterInput,
   userRegisterSchema,
 } from "../validation/user.validation";
-import { createUser, findUserByEmail, User } from "../models/user.model";
+import {
+  createUser,
+  findUserByEmail,
+  updateUserOTP,
+  User,
+} from "../models/user.model";
+import { sendOTPEmail } from "../utils/emailService";
 
 export const registerUser = async (
   req: Request,
@@ -38,8 +45,15 @@ export const registerUser = async (
     };
 
     const user = await createUser(newUser);
+
+    const otp = uuidv4().slice(0, 6).toUpperCase();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10minutes
+    await updateUserOTP(user.email, otp, otpExpiresAt);
+    await sendOTPEmail(user.email, otp);
+
     res.status(201).json({
-      message: "User created successfully",
+      message:
+        "User created successfully. Please check your email for OTP verification",
       user: { id: user?.id, email: user?.email },
     });
   } catch (error) {

@@ -1,10 +1,10 @@
 import dotenv from "dotenv";
 import app from "./app";
-import { createPool } from "./config/db";
+import { createPool } from "./config/database/db";
 
 dotenv.config();
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
   console.log(`Server is listening on port: ${PORT}`);

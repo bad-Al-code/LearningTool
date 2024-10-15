@@ -22,7 +22,7 @@ import { sendOTPEmail, sendWelcomeEmail } from "../utils/emailService";
 
 export const registerUser = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const parsed = userRegisterSchema.safeParse(req.body);
@@ -127,7 +127,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const token = jwt.sign(
       { id: user?.id, email: user?.email },
       process.env.JWT_SECRET as string,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     // cookies
@@ -144,6 +144,50 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Internal server eroor" });
+  }
+};
+
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const user = await findUserByEmail(email);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const otp = uuidv4().slice(0, 6).toUpperCase();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await updateUserOTP(user.id!, otp, otpExpiresAt);
+
+    await sendOTPEmail(email, otp);
+
+    res
+      .status(200)
+      .json({ message: "OTP sent to your email for password reset" });
+  } catch (error) {
+    console.error("Error in requesting passsword reset", error);
+    res.status(500).json({ message: "Failed to request password reset" });
+  }
+};
+
+export const verifyPasswordResetOTP = async (req: Request, res: Response) => {
+  try {
+    const { otp } = req.body;
+    const user = await verifyUserOTP(otp);
+    if (!user) {
+      res.status(400).json({ message: "Invalid pr expired OTP" });
+      return;
+    }
+
+    await markUserAsVerified(user.id!);
+
+    res
+      .status(200)
+      .json({ message: "OTP verified. You can now reset your password" });
+  } catch (error) {
+    console.error("Error veryifying OTP for password reset: ", error);
+    res.status(500).json({ message: "Failed to verigy OTP" });
   }
 };
 

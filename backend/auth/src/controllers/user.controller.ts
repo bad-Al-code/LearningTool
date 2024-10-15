@@ -22,7 +22,7 @@ import { sendOTPEmail, sendWelcomeEmail } from "../utils/emailService";
 
 export const registerUser = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const parsed = userRegisterSchema.safeParse(req.body);
@@ -127,7 +127,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const token = jwt.sign(
       { id: user?.id, email: user?.email },
       process.env.JWT_SECRET as string,
-      { expiresIn: "1h" }
+      { expiresIn: "1h" },
     );
 
     // cookies
@@ -179,6 +179,8 @@ export const verifyPasswordResetOTP = async (req: Request, res: Response) => {
       res.status(400).json({ message: "Invalid pr expired OTP" });
       return;
     }
+
+    await markUserAsVerified(user.id!);
 
     res
       .status(200)

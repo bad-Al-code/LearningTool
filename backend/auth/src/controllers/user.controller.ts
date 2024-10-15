@@ -147,6 +147,30 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+export const requestPasswordReset = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body;
+    const user = await findUserByEmail(email);
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const otp = uuidv4().slice(0, 6).toUpperCase();
+    const otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await updateUserOTP(user.id!, otp, otpExpiresAt);
+
+    await sendOTPEmail(email, otp);
+
+    res
+      .status(200)
+      .json({ message: "OTP sent to your email for password reset" });
+  } catch (error) {
+    console.error("Error in requesting passsword reset", error);
+    res.status(500).json({ message: "Failed to request password reset" });
+  }
+};
+
 export const logoutUser = (req: Request, res: Response) => {
   res.clearCookie("token", {
     httpOnly: true,

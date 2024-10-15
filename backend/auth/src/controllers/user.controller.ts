@@ -171,6 +171,24 @@ export const requestPasswordReset = async (req: Request, res: Response) => {
   }
 };
 
+export const verifyPasswordResetOTP = async (req: Request, res: Response) => {
+  try {
+    const { otp } = req.body;
+    const user = await verifyUserOTP(otp);
+    if (!user) {
+      res.status(400).json({ message: "Invalid pr expired OTP" });
+      return;
+    }
+
+    res
+      .status(200)
+      .json({ message: "OTP verified. You can now reset your password" });
+  } catch (error) {
+    console.error("Error veryifying OTP for password reset: ", error);
+    res.status(500).json({ message: "Failed to verigy OTP" });
+  }
+};
+
 export const logoutUser = (req: Request, res: Response) => {
   res.clearCookie("token", {
     httpOnly: true,

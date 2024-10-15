@@ -25,8 +25,4 @@ app.use(limiter);
 
 app.use("/api/users", userRoutes);
 
-app.get("/", (req: Request, res: Response) => {
-  res.send("Hello");
-});
-
 export default app;

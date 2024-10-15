@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import bcryptjs from "bcryptjs";
 import { Pool } from "mysql2/promise";
 
@@ -11,6 +12,10 @@ export interface User {
   otp?: string;
   otpExpiresAt?: Date;
   isVerified?: boolean;
+  resetPasswordToken?: string;
+  resetPasswordTokenExpiresAt?: Date;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 let pool: Pool;
@@ -69,4 +74,43 @@ export const markUserAsVerified = async (userId: number): Promise<void> => {
     "UPDATE users SET isVerified = true, otp = NULL, otpExpiresAt = NULL WHERE id = ?";
 
   await pool.query(sql, [userId]);
+};
+
+export const generateResetPasswordToken = async (
+  userId: number
+): Promise<string> => {
+  const token = jwt.sign({ userId }, process.env.JWT_SECRET as string, {
+    expiresIn: "1h",
+  });
+  const expiresAt = new Date(Date.now() * 60 * 1000);
+
+  await initPool();
+  const sql =
+    "UPDATE users SET resetPasswordToken = ?, resetPasswordTokenExpiresAt = ? WHERE id = ?";
+
+  await pool.query(sql, [token, expiresAt, userId]);
+
+  return token;
+};
+
+export const findUserByResetPasswordToken = async (
+  token: string
+): Promise<User | null> => {
+  await initPool();
+  const sql =
+    "SELECT * FROM users WHERE resetPasswordToken = ? AND resetPasswordTokenExpiresAt > NOW()";
+
+  const [rows]: any = await pool.query(sql, [token]);
+  return rows[0] || null;
+};
+
+export const updateUserPassword = async (
+  userId: number,
+  newPassword: string
+): Promise<void> => {
+  await initPool();
+  const hashedPassword = await bcryptjs.hash(newPassword, 10);
+  const sql =
+    "UPDATE users SET password = ?, resetPasswordToken = NULL, resetPasswordTokenExpiresAt = NULL WHERE id = ?";
+  await pool.query(sql, [hashedPassword, userId]);
 };

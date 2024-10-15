@@ -8,21 +8,26 @@ import {
   userLoginValidation,
   UserRegisterInput,
   userRegisterSchema,
+  userResetPasswordSchema,
   userVerifyOTPSchema,
 } from "../validation/user.validation";
 import {
   createUser,
   findUserByEmail,
+  findUserByResetPasswordToken,
+  generateResetPasswordToken,
   markUserAsVerified,
   updateUserOTP,
+  updateUserPassword,
   User,
   verifyUserOTP,
 } from "../models/user.model";
 import { sendOTPEmail, sendWelcomeEmail } from "../utils/emailService";
+import { error } from "console";
 
 export const registerUser = async (
   req: Request,
-  res: Response,
+  res: Response
 ): Promise<void> => {
   try {
     const parsed = userRegisterSchema.safeParse(req.body);
@@ -127,7 +132,7 @@ export const loginUser = async (req: Request, res: Response): Promise<void> => {
     const token = jwt.sign(
       { id: user?.id, email: user?.email },
       process.env.JWT_SECRET as string,
-      { expiresIn: "1h" },
+      { expiresIn: "1h" }
     );
 
     // cookies
@@ -176,18 +181,58 @@ export const verifyPasswordResetOTP = async (req: Request, res: Response) => {
     const { otp } = req.body;
     const user = await verifyUserOTP(otp);
     if (!user) {
-      res.status(400).json({ message: "Invalid pr expired OTP" });
+      res.status(400).json({ message: "Invalid or expired OTP" });
       return;
     }
 
     await markUserAsVerified(user.id!);
+    const resetPasswordToken = await generateResetPasswordToken(user.id!);
+    // const resetPasswordUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetPasswordToken}`;
 
-    res
-      .status(200)
-      .json({ message: "OTP verified. You can now reset your password" });
+    res.status(200).json({
+      message: "OTP verified. You can now reset your password",
+      // resetPasswordUrl,
+      resetPasswordToken,
+    });
   } catch (error) {
     console.error("Error veryifying OTP for password reset: ", error);
-    res.status(500).json({ message: "Failed to verigy OTP" });
+    res.status(500).json({ message: "Failed to verify OTP" });
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  try {
+    const parsed = userResetPasswordSchema.safeParse(req.body);
+    if (!parsed.success) {
+      res.status(400).json({ error: parsed.error.errors });
+      return;
+    }
+
+    const { newPassword, confirmPassword } = parsed.data;
+
+    const token = req.headers["reset-token"] as string;
+
+    if (!token) {
+      res.status(400).json({ message: "Reset token is missing" });
+      return;
+    }
+
+    const user = await findUserByResetPasswordToken(token);
+    if (!user) {
+      res
+        .status(400)
+        .json({ message: "Invalid or expired reset password token" });
+      return;
+    }
+
+    await updateUserPassword(user.id!, newPassword);
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    console.error("Error in resetting password", error);
+    res.send(500).json({ message: "Failed tp reset password" });
   }
 };
 

@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+
 function task() {
     console.log(`Task execued at ${new Date().toLocaleTimeString()}`);
 }
@@ -104,14 +107,25 @@ function adjustForDST(
     });
 }
 
-scheduleJob(job1, 23, 34, 0);
-scheduleJob(job2, 23, 34, 30);
+const logFilePath = path.join(__dirname, "cron-job-logs.txt");
+function logJobExecution(jobName: string) {
+    const logMessage = `[${new Date().toLocaleString()}] ${jobName} excuted\n`;
+
+    fs.appendFile(logFilePath, logMessage, (err) => {
+        if (err) {
+            console.error("Failed tp log job execution: ", err);
+        }
+    });
+}
+
+scheduleJob(job1, 23, 48, 25);
+scheduleJob(job2, 23, 48, 30);
 
 scheduleJonInTimeZone(
     () => {
         console.log("job in IST executed");
     },
     23,
-    44,
+    49,
     "Asia/Kolkata"
 );

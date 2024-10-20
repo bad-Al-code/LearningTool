@@ -1,8 +1,10 @@
 import "dotenv/config";
 import app from "./app";
 import { createPool } from "./config/database";
+import { validateEnv } from "./config/env";
+import ErrorHandler from "./middlewares/errorHandler.middleware";
 
-const PORT = process.env.PORT || 5000;
+const PORT = validateEnv.PORT;
 
 const startServer = async () => {
     try {
@@ -14,10 +16,7 @@ const startServer = async () => {
             console.log(`Server is listening on port: ${PORT}`);
         });
     } catch (error) {
-        console.error(
-            "Database connection failed:",
-            error instanceof Error ? error.message : error
-        );
+        ErrorHandler.handleDatabaseError(error);
         process.exit(1);
     }
 };

@@ -1,4 +1,5 @@
 import mysql, { Pool } from "mysql2/promise";
+import ErrorHandler from "../middlewares/errorHandler.middleware";
 
 let pool: Pool | undefined;
 
@@ -33,10 +34,7 @@ export const createPool = async (): Promise<Pool> => {
 
         return pool;
     } catch (error) {
-        console.error(
-            "MySQL Database connection failed:",
-            error instanceof Error ? error.message : error
-        );
+        ErrorHandler.handleDatabaseError(error);
         throw new Error("Database connection failed");
     }
 };

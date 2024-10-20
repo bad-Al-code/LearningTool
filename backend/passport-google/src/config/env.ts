@@ -1,10 +1,22 @@
 import "dotenv/config";
+import { z } from "zod";
 
-export const env = {
-    PORT: process.env.PORT || 3000,
-    SESSION_SECRET: process.env.SESSION_SECRET,
-    MYSQL_HOST: process.env.MYSQL_HOST || "localhost",
-    MYSQL_USER: process.env.MYSQL_USER || "root",
-    MYSQL_PASSWORD: process.env.MYSQL_PASSWORD || "",
-    MYSQL_DB: process.env.MYSQL_DB || "your_db_name",
-};
+const envSchema = z.object({
+    PORT: z
+        .string()
+        .transform((val) => parseInt(val, 10))
+        .default("3000"),
+    SESSION_SECRET: z.string().min(1, "SESSION_SECRET is required"),
+    MYSQL_HOST: z.string().min(1, "MYSQL_HOST is required"),
+    MYSQL_PASSWORD: z.string().min(1, "MYSQL_PASSWORD is required"),
+    MYSQL_DB: z.string().min(1, "MYSQL_DB is required"),
+});
+
+const env = envSchema.safeParse(process.env);
+
+if (!env.success) {
+    console.error("❌ Invalid environment variables:", env.error.format());
+    process.exit(1);
+}
+
+export const validateEnv = env.data;

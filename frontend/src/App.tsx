@@ -1,54 +1,43 @@
 import { motion } from 'framer-motion';
 
 const App: React.FC = () => {
+    const boxVariants = {
+        initial: {
+            scale: 1,
+            rotate: 0,
+            skew: 0,
+        },
+        hover: {
+            scale: 1.2,
+            rotate: 15,
+            skew: 10,
+            transition: { duration: 0.5 },
+        },
+        click: {
+            scale: 0.9,
+            rotate: -15,
+            transition: { duration: 0.3 },
+        },
+    };
+
     return (
-        <div className="flex justify-center items-center h-screen  space-x-3">
-            {/* <motion.div
-                className="box"
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.9 }}
-                transition={{
-                    type: 'Spring',
-                    stiffness: 400,
-                    damping: 10,
-                }}
-            />
-
-            <motion.button
-                animate={{
-                    scale: [1, 1.1, 1],
-                    backgroundColor: ['red', 'blue', 'green'],
-                }}
-                transition={{
-                    duration: 0.8,
-                    ease: 'easeInOut',
-                    repeat: Infinity,
-                }}
-                className="px-4 py-2 bg-blue-700 rounded-lg outline-none"
-            >
-                Button
-            </motion.button> */}
-            {/* <div className="flex items-center justify-center space-x-3">
-                {[...Array(3)].map((_, index) => (
-                    <motion.div
-                        key={index}
-                        className="h-4 w-4 bg-white rounded-full"
-                        animate={{ x: [0, 15, 0] }}
-                        transition={{
-                            duration: 0.4,
-                            ease: 'easeInOut',
-                            repeat: Infinity,
-                            delay: index * 0.1,
-                            repeatDelay: 0.6,
-                        }}
-                    />
-                ))}
-            </div> */}
-
-            {[...Array(3)].map((_, index) => (
+        <div className="flex justify-center items-center h-screen  ">
+            {/* {[...Array(3)].map((_, index) => (
                 <motion.div
                     key={index}
                     className="h-4 w-4 bg-red-500 rounded-full"
+                    variants={{
+                        hidden: { opacity: 0, scale: 0.8 },
+                        visible: {
+                            opacity: 1,
+                            scale: 1,
+                        },
+                        exit: {
+                            opacity: 0,
+                            scale: 0.5,
+                        },
+                    }}
+                    initial="visible"
                     animate={{
                         x:
                             index === 0
@@ -66,7 +55,14 @@ const App: React.FC = () => {
                         repeatDelay: 0.4,
                     }}
                 />
-            ))}
+            ))} */}
+            <motion.div
+                className="w-40 h-40 bg-blue-500 rounded-lg"
+                variants={boxVariants}
+                initial="initial"
+                whileHover="hover"
+                whileTap="click"
+            ></motion.div>
         </div>
     );
 };
